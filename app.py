@@ -36,12 +36,35 @@ def games():
     )
 
 
-@app.route("/games/<int:game_id>")
+# 👇 allow POST here so the form on the details page works
+@app.route("/games/<int:game_id>", methods=["GET", "POST"])
 def game_details(game_id):
     game = next((g for g in GAMES if g["id"] == game_id), None)
     if not game:
         flash("Game not found.", "error")
         return redirect(url_for("games"))
+
+    # if user clicked "Add to Cart" on this page
+    if request.method == "POST":
+        platform = request.form.get("platform", "").strip()
+
+        # IH #8: help tinkerers be careful
+        if not platform:
+            flash("Please select a platform before adding to cart.", "warning")
+            return redirect(url_for("game_details", game_id=game_id))
+
+        cart = _get_cart()
+        cart.append({
+            "id": game_id,
+            "title": game["title"],
+            "platform": platform,
+            "price": game["price"]
+        })
+        session["cart"] = cart
+        flash(f'Added "{game["title"]}" for {platform} to your cart.', "success")
+        return redirect(url_for("cart"))
+
+    # otherwise just show the page
     return render_template("game_details.html", game=game)
 
 
@@ -91,4 +114,4 @@ def cart_remove():
 
 
 if __name__ == "__main__":
-    app.run(debug=True) # I am using arch Linux, this will run on 127.0.0.1:5000 by default
+    app.run(debug=True)  # will run on 127.0.0.1:5000 by default
