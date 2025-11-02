@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Your Cart</h2>
+  {% if cart %}
+    <ul class="cart-list">
+      {% for item in cart %}
+        <li>
+          {{ item.title }} ({{ item.platform }}) - ${{ "%.2f"|format(item.price) }}
+          <form method="post"
+                action="{{ url_for('cart_remove') }}"
+                style="display:inline"
+                onsubmit="return confirm('Are you sure you want to remove this game?');">
+            <input type="hidden" name="index" value="{{ loop.index0 }}">
+            <button type="submit">Remove</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+    <p><strong>Total:</strong> ${{ "%.2f"|format(total) }}</p>
+  {% else %}
+    <p>Your cart is empty.</p>
+  {% endif %}
+  <p><a href="{{ url_for('games') }}">← Back to library</a></p>
+{% endblock %}

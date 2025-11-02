@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Welcome to Catalyst Games</h1>
+  <p>This app lets you browse our full game library, view details, and add a game to your cart.</p>
+  <p>This is useful if you want to compare prices and platforms before buying.</p>
+  <a class="btn" href="{{ url_for('games') }}">View Game Library</a>
+
+  <!-- home page image -->
+  <div class="home-image">
+    <img src="{{ url_for('static', filename='game_banner.jpg') }}" alt="Catalyst Games Banner">
+  </div>
+{% endblock %}
+

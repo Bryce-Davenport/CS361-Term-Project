@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Game Library</h2>
+  <p>You can search for a title, or browse all games below.</p>
+  <form method="get" class="search-form">
+    <label for="q">Search by title:</label>
+    <input type="text" id="q" name="q" value="{{ query }}">
+    <button type="submit">Search</button>
+  </form>
+
+  <p>Showing {{ games|length }} of {{ total }} games.</p>
+
+  <div class="game-grid">
+    {% for game in games %}
+      <div class="game-card">
+        <h3><a href="{{ url_for('game_details', game_id=game.id) }}">{{ game.title }}</a></h3>
+        <p>${{ "%.2f"|format(game.price) }}</p>
+        <a class="btn-small" href="{{ url_for('game_details', game_id=game.id) }}">View details</a>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

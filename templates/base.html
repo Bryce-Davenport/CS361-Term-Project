@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Catalyst Games</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <!-- Google Icon for cart -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-left">
+      <a class="brand" href="{{ url_for('home') }}">Catalyst Games</a>
+      <a href="{{ url_for('games') }}">Game Library</a>
+    </div>
+    <div class="nav-right">
+      <a class="cart-link" href="{{ url_for('cart') }}">
+        <span class="material-icons">shopping_cart</span>
+        Cart
+      </a>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
+
