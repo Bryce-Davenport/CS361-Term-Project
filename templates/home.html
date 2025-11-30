@@ -9,5 +9,11 @@
   <div class="home-image">
     <img src="{{ url_for('static', filename='game_banner.png') }}" alt="Catalyst Games Banner">
   </div>
+
+  <!--Random announcment from micro service-->
+  <section class="announcement-panel">
+  <h2>Store Announcement</h2>
+  <p>{{ announcement }}</p>
+</section>
 {% endblock %}
 

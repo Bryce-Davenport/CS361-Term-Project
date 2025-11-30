@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from datetime import timedelta
-from data import GAMES
+from data import GAMES, REVIEWS
+import requests
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-change"
@@ -14,15 +15,43 @@ def _get_cart():
     return session["cart"]
 
 
+def _get_random_announcement():
+    
+    # Call the Small Pool Random Notification microservice and return one announcement string for the UI.
+    announcements_path = "data/announcements.json"
+
+    try:
+        with open(announcements_path, "rb") as f:
+            files = {
+                "file": ("announcements.json", f, "application/json")
+            }
+
+            resp = requests.post(
+                "http://localhost:5001/random-announcement",  # microservice port
+                files=files,
+                timeout=5
+            )
+
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("announcement", "Welcome to Catalyst Games!")
+
+    except Exception as e:
+        # Fallback message if the microservice is down
+        return f"Welcome to Catalyst Games! (Notification service error: {e})"
+
+
 @app.route("/")
 def home():
-    return render_template("home.html")
+    # Show a Small Pool microservice announcement on the home page
+    announcement = _get_random_announcement()
+    return render_template("home.html", announcement=announcement)
 
 
 @app.route("/games")
 def games():
     # IH #7: Allow search OR browse
-    query = request.args.get("q", "").lower()
+    query = request.args.get("query", "").lower()
     if query:
         filtered = [g for g in GAMES if query in g["title"].lower()]
     else:
@@ -36,7 +65,7 @@ def games():
     )
 
 
-# 👇 allow POST here so the form on the details page works
+# allow POST here so the form on the details page works
 @app.route("/games/<int:game_id>", methods=["GET", "POST"])
 def game_details(game_id):
     game = next((g for g in GAMES if g["id"] == game_id), None)
@@ -44,7 +73,6 @@ def game_details(game_id):
         flash("Game not found.", "error")
         return redirect(url_for("games"))
 
-    # if user clicked "Add to Cart" on this page
     if request.method == "POST":
         platform = request.form.get("platform", "").strip()
 
@@ -64,8 +92,13 @@ def game_details(game_id):
         flash(f'Added "{game["title"]}" for {platform} to your cart.', "success")
         return redirect(url_for("cart"))
 
-    # otherwise just show the page
-    return render_template("game_details.html", game=game)
+    ratings = REVIEWS.get(game_id, [])
+
+    return render_template(
+        "game_details.html",
+        game=game,
+        ratings=ratings
+    )
 
 
 @app.route("/cart/add", methods=["POST"])
@@ -111,6 +144,14 @@ def cart_remove():
         session["cart"] = cart
         flash(f'Removed {removed["title"]} ({removed["platform"]})', "info")
     return redirect(url_for("cart"))
+
+
+@app.route("/announcements")
+def announcements():
+    # Separate page that also shows a random announcement from the Small Pool microservice
+
+    announcement = _get_random_announcement()
+    return render_template("announcements.html", announcement=announcement)
 
 
 if __name__ == "__main__":

@@ -1,20 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>{{ game.title }}</h1>
-  <img src="{{ url_for('static', filename=game.image) }}" alt="{{ game.title }} cover" class="detail-cover">
 
-  <p><strong>Price:</strong> ${{ '%.2f'|format(game.price) }}</p>
-  <p>{{ game.description }}</p>
+<div style="display: flex; gap: 40px; align-items: flex-start;">
 
-  <form method="POST">
-    <label for="platform">Choose platform:</label>
-    <select name="platform" id="platform">
-      {% for platform in game.platforms %}
-        <option value="{{ platform }}">{{ platform }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Add to Cart</button>
-  </form>
+  <!-- game details  -->
+  <div style="flex: 1; max-width: 520px;">
+    <h1>{{ game.title }}</h1>
+    <img src="{{ url_for('static', filename=game.image) }}"
+         alt="{{ game.title }} cover"
+         class="detail-cover">
 
-  <p><a href="{{ url_for('games') }}">Back to Library</a></p>
+    <p><strong>Price:</strong> ${{ '%.2f'|format(game.price) }}</p>
+    <p>{{ game.description }}</p>
+
+    <form method="POST">
+      <label for="platform">Choose platform:</label>
+      <select name="platform" id="platform">
+        {% for platform in game.platforms %}
+          <option value="{{ platform }}">{{ platform }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Add to Cart</button>
+    </form>
+
+    <p><a href="{{ url_for('games') }}">Back to Library</a></p>
+  </div>
+
+  <!-- reviews panel -->
+  <div style="flex: 1; background-color: #f8f8f8; padding: 20px; border-radius: 8px;">
+    <h1>Average Review: </h1>
+    <h2>Reviews</h2>
+
+    {% if ratings and ratings|length > 0 %}
+      <ul>
+        {% for r in ratings %}
+          <li>⭐ {{ r }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No reviews yet for this game.</p>
+    {% endif %}
+  </div>
+
+</div>
+
 {% endblock %}
