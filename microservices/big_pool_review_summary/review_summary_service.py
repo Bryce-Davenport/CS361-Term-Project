@@ -35,7 +35,7 @@ def rating_summary():
             except (TypeError, ValueError): #checks if numeric 
                 continue
 
-            if 1.0 <= value <= 5.0: #checkis if in range
+            if 1.0 <= value <= 5.0: #check if in range
                 numeric_ratings.append(value)
             else:
                 continue

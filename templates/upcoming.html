@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+  <h1>Upcoming Releases</h1>
+  <p>Showing games with a release year after {{ current_year }}.</p>
+
+  {# Handle error / edge-case statuses from the microservice #}
+  {% if status == "service_unavailable" %}
+    <p>
+      The Upcoming Release microservice is currently unavailable.
+      Please try again later.
+    </p>
+
+  {% elif status == "game_data_invalid" %}
+    <p>
+      Could not load upcoming releases due to invalid game data.
+    </p>
+
+  {% elif status == "no_upcoming_releases" %}
+    <p>No upcoming releases were found.</p>
+
+  {% else %}
+    <div class="game-grid">
+      {% for game in upcoming_games %}
+        <div class="game-card">
+          <img src="{{ url_for('static', filename=game.image) }}"
+               alt="{{ game.title }} cover"
+               class="game-cover">
+          <h3>
+            <a href="{{ url_for('game_details', game_id=game.id) }}">
+              {{ game.title }}
+            </a>
+          </h3>
+          <p>${{ '%.2f'|format(game.price) }}</p>
+          {% if game.release_year is defined %}
+            <p><strong>Release Year:</strong> {{ game.release_year }}</p>
+          {% endif %}
+          <a class="btn-small"
+             href="{{ url_for('game_details', game_id=game.id) }}">
+            View details
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <p style="margin-top: 20px;">
+    <a href="{{ url_for('games') }}">Back to full game library</a>
+  </p>
+
+{% endblock %}

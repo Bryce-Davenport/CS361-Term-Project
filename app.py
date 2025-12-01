@@ -1,15 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from datetime import timedelta
-from data import GAMES, REVIEWS
+from pathlib import Path
 import requests
+
+from data import GAMES, REVIEWS
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-change"
 app.permanent_session_lifetime = timedelta(minutes=30)
 
 
-def _get_cart():
-    """Return the current cart from session, create if missing."""
+def _get_cart(): # Return the current cart from session, create if missing.
     if "cart" not in session:
         session["cart"] = []
     return session["cart"]
@@ -43,31 +44,26 @@ def _get_random_announcement():
 
 @app.route("/")
 def home():
-    # Show a Small Pool microservice announcement on the home page
-    announcement = _get_random_announcement()
-    return render_template("home.html", announcement=announcement)
+    announcement_text = _get_random_announcement()
+    return render_template("home.html", announcement=announcement_text)
 
 
-@app.route("/games")
+@app.route("/games", methods=["GET"]) # browse or search
 def games():
-    # IH #7: Allow search OR browse
-    query = request.args.get("query", "").lower()
+    """Browse or search the game library."""
+    query = request.args.get("query", "").strip().lower()
+
     if query:
         filtered = [g for g in GAMES if query in g["title"].lower()]
     else:
         filtered = GAMES
 
-    return render_template(
-        "games.html",
-        games=filtered,
-        query=query,
-        total=len(GAMES)
-    )
+    return render_template("games.html", games=filtered, query=query)
 
 
-# allow POST here so the form on the details page works
 @app.route("/games/<int:game_id>", methods=["GET", "POST"])
 def game_details(game_id):
+
     game = next((g for g in GAMES if g["id"] == game_id), None)
     if not game:
         flash("Game not found.", "error")
@@ -82,54 +78,59 @@ def game_details(game_id):
             return redirect(url_for("game_details", game_id=game_id))
 
         cart = _get_cart()
-        cart.append({
-            "id": game_id,
-            "title": game["title"],
-            "platform": platform,
-            "price": game["price"]
-        })
+        cart.append(
+            {
+                "id": game_id,
+                "title": game["title"],
+                "platform": platform,
+                "price": game["price"],
+            }
+        )
         session["cart"] = cart
         flash(f'Added "{game["title"]}" for {platform} to your cart.', "success")
         return redirect(url_for("cart"))
 
+    # ---- Local ratings data for this game ----
     ratings = REVIEWS.get(game_id, [])
+
+    # ---- Call Review Summary Microservice over HTTP ----
+    avg_rating = None
+    review_count = 0
+
+    try:
+        resp = requests.post(
+            "http://127.0.0.1:5002/rating-summary",
+            json={"ratings": ratings},
+            timeout=3,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        status = data.get("status")
+
+        if status == "ok":
+            avg_rating = data.get("average_rating")
+            review_count = data.get("review_count", 0)
+        elif status in ("no_rating_yet", "rating_data_invalid", "no_rating_available"):
+            avg_rating = None
+            review_count = 0
+
+    except Exception:
+        # Reliability: if the microservice is down/slow, fail safely
+        avg_rating = None
+        review_count = 0
 
     return render_template(
         "game_details.html",
         game=game,
-        ratings=ratings
+        ratings=ratings,
+        avg_rating=avg_rating,
+        review_count=review_count,
     )
-
-
-@app.route("/cart/add", methods=["POST"])
-def add_to_cart():
-    game_id = int(request.form.get("game_id"))
-    platform = request.form.get("platform", "").strip()
-
-    game = next((g for g in GAMES if g["id"] == game_id), None)
-    if not game:
-        flash("Game not found.", "error")
-        return redirect(url_for("games"))
-
-    # IH #8: help tinkerers be careful
-    if not platform:
-        flash("Please select a platform before adding to cart.", "warning")
-        return redirect(url_for("game_details", game_id=game_id))
-
-    cart = _get_cart()
-    cart.append({
-        "id": game_id,
-        "title": game["title"],
-        "platform": platform,
-        "price": game["price"]
-    })
-    session["cart"] = cart
-    flash(f'Added "{game["title"]}" for {platform} to your cart.', "success")
-    return redirect(url_for("cart"))
 
 
 @app.route("/cart")
 def cart():
+    """View current cart contents."""
     cart = _get_cart()
     total = sum(item["price"] for item in cart)
     return render_template("cart.html", cart=cart, total=total)
@@ -137,22 +138,81 @@ def cart():
 
 @app.route("/cart/remove", methods=["POST"])
 def cart_remove():
-    idx = int(request.form.get("index"))
+    """Remove an item from the cart by index."""
+    idx_raw = request.form.get("index", "").strip()
+    try:
+        idx = int(idx_raw)
+    except ValueError:
+        idx = -1
+
     cart = _get_cart()
     if 0 <= idx < len(cart):
         removed = cart.pop(idx)
         session["cart"] = cart
         flash(f'Removed {removed["title"]} ({removed["platform"]})', "info")
+    else:
+        flash("Could not remove that item from the cart.", "error")
+
     return redirect(url_for("cart"))
 
 
-@app.route("/announcements")
+@app.route("/announcements") # Small Pool MS #1
 def announcements():
-    # Separate page that also shows a random announcement from the Small Pool microservice
 
-    announcement = _get_random_announcement()
-    return render_template("announcements.html", announcement=announcement)
+    announcements_path = Path("data") / "announcements.json"
+    announcement_text = None
 
+    try:
+        with announcements_path.open("rb") as f:
+            files = {
+                "file": (
+                    "announcements.json",
+                    f,
+                    "application/json",
+                )
+            }
+
+            resp = requests.post(
+                "http://127.0.0.1:5001/random-announcement",
+                files=files,
+                timeout=3,
+            )
+        resp.raise_for_status()
+        data = resp.json()
+        announcement_text = data.get("announcement")
+
+    except Exception:
+        # Fail gracefully 
+        announcement_text = (
+            "Announcements are currently unavailable. "
+            "Please check back again later."
+        )
+
+    return render_template("announcements.html", announcement=announcement_text)
+
+@app.route("/upcoming", methods=["GET"]) # Big Pool MS #2
+def upcoming():
+    try:
+        resp = requests.post(
+            "http://127.0.0.1:5003/upcoming-releases",
+            json={"games": GAMES},
+            timeout=3,
+        )
+        data = resp.json()
+    except Exception:
+        data = {
+            "status": "service_unavailable",
+            "current_year": datetime.now().year,
+            "upcoming_games": [],
+            "skipped_count": 0,
+        }
+
+    return render_template(
+        "upcoming.html",
+        status=data.get("status"),
+        current_year=data.get("current_year"),
+        upcoming_games=data.get("upcoming_games", []),
+    )
 
 if __name__ == "__main__":
-    app.run(debug=True)  # will run on 127.0.0.1:5000 by default
+    app.run(debug=True)  # runs on 127.0.0.1:5000 by default

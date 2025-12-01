@@ -11,6 +11,11 @@
          class="detail-cover">
 
     <p><strong>Price:</strong> ${{ '%.2f'|format(game.price) }}</p>
+
+    {% if game.release_year is defined %}
+      <p><strong>Release Year:</strong> {{ game.release_year }}</p>
+    {% endif %}
+
     <p>{{ game.description }}</p>
 
     <form method="POST">
@@ -27,8 +32,24 @@
   </div>
 
   <!-- reviews panel -->
-  <div style="flex: 1; background-color: #f8f8f8; padding: 20px; border-radius: 8px;">
-    <h1>Average Review: </h1>
+  <div style="flex: 1; background-color: #777cc9; padding: 20px; border-radius: 8px;">
+
+    <h2>Average Review</h2>
+
+    {% if review_count > 0 and avg_rating is not none %}
+      <p>
+        <strong>Average Rating:</strong>
+        {{ '%.1f'|format(avg_rating) }} ({{ review_count }} reviews)
+      </p>
+    {% else %}
+      <p>
+        <strong>Average Rating:</strong>
+        No rating yet.
+      </p>
+    {% endif %}
+
+    <hr>
+
     <h2>Reviews</h2>
 
     {% if ratings and ratings|length > 0 %}
@@ -40,8 +61,11 @@
     {% else %}
       <p>No reviews yet for this game.</p>
     {% endif %}
+
   </div>
 
 </div>
 
 {% endblock %}
+
+
