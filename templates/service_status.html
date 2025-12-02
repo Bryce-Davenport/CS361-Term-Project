@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Microservice Status</h1>
+  <p>
+    This page checks each microservice using the
+    <strong>Server Ping</strong> microservice.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Address</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in services %}
+        <tr>
+          <td>{{ s.name }}</td>
+          <td>http://{{ s.ip }}:{{ s.port }}/{{ s.endpoint }}</td>
+          <td>
+            {% if s.online %}
+              <span style="color: #0a0; font-weight: bold;">Online</span>
+            {% else %}
+              <span style="color: #a00; font-weight: bold;">Offline</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="margin-top: 1rem;">
+    <a class="btn-small" href="{{ url_for('home') }}">Back to Home</a>
+  </p>
+{% endblock %}

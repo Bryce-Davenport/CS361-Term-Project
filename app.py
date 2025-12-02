@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 import requests
 
@@ -14,6 +14,34 @@ def _get_cart(): # Return the current cart from session, create if missing.
     if "cart" not in session:
         session["cart"] = []
     return session["cart"]
+
+def _check_service_via_ping(name: str, ip: str, port: int, endpoint: str) -> dict: # Big Pool ms 4
+
+    payload = {
+        "ip": ip,
+        "port": port,
+        "endpoint": endpoint,
+    }
+
+    try:
+        resp = requests.post(
+            "http://127.0.0.1:5004/check",  # Server Ping microservice
+            json=payload,
+            timeout=3,
+        )
+        resp.raise_for_status()
+        result = resp.json()  # expected to be a JSON boolean
+        online = bool(result)
+    except Exception: # If the ping service itself is down or errors, treat as offline.
+        online = False
+
+    return {
+        "name": name,
+        "ip": ip,
+        "port": port,
+        "endpoint": endpoint,
+        "online": online,
+    }
 
 
 def _get_random_announcement():
@@ -213,6 +241,36 @@ def upcoming():
         current_year=data.get("current_year"),
         upcoming_games=data.get("upcoming_games", []),
     )
+
+@app.route("/service-status", methods=["GET"]) #Big Pool MS #3
+def service_status():
+    targets = [
+        {
+            "name": "Random Announcement Service",
+            "ip": "127.0.0.1",                "port": 5001,
+            "endpoint": "random-announcement",
+        },
+        {
+            "name": "Review Summary Service",
+            "ip": "127.0.0.1",
+            "port": 5002,
+            "endpoint": "rating-summary",
+        },
+        {
+            "name": "Upcoming Releases Service",
+            "ip": "127.0.0.1",
+            "port": 5003,
+            "endpoint": "upcoming-releases",
+        },
+    ]
+
+    services = [
+        _check_service_via_ping(
+            t["name"], t["ip"], t["port"], t["endpoint"]
+        )
+        for t in targets
+    ]
+    return render_template("service_status.html", services=services)
 
 if __name__ == "__main__":
     app.run(debug=True)  # runs on 127.0.0.1:5000 by default
