@@ -86,7 +86,7 @@ GAMES = [
         "price": 69.99,
         "description": "A story-driven space exploration RPG where you uncover ancient civilizations and chart unknown galaxies.",
         "platforms": ["PC", "PS5", "Xbox"],
-        "image": "starfall_odyssey.jpg",
+        "image": "starfall.jpg",
         "release_year": 2026,   # FUTURE GAME
     },
     {
@@ -104,7 +104,7 @@ GAMES = [
         "price": 39.99,
         "description": "A futuristic arcade racer with neon-lit tracks, customizable vehicles, and online multiplayer.",
         "platforms": ["PC", "Switch", "PS5", "Xbox"],
-        "image": "neon_circuit.jpg",
+        "image": "neon.jpg",
         "release_year": 2024,
     },
     {
@@ -113,7 +113,7 @@ GAMES = [
         "price": 49.99,
         "description": "A tactical turn-based strategy game where time manipulation is the core combat mechanic.",
         "platforms": ["PC", "PS5"],
-        "image": "chronoforge.jpg",
+        "image": "chrono.png",
         "release_year": 2025,
     },
 ]

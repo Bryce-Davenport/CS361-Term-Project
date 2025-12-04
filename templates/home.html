@@ -14,6 +14,22 @@
   <section class="announcement-panel">
   <h2>Store Announcement</h2>
   <p>{{ announcement }}</p>
+
+    <!-- Small green Service Status button -->
+  <!-- Small green Service Status button (lower-left aligned) -->
+  <div style="margin-top: 80px; text-align: left; width: 100%;">
+    <a href="{{ url_for('service_status') }}"
+      style="
+        background-color: #28a745;
+        color: white;
+        padding: 8px 14px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 0.9rem;
+      ">
+      Check Microservice Status
+    </a>
+  </div>
 </section>
 {% endblock %}
 
